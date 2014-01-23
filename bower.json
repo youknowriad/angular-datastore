@@ -1,0 +1,15 @@
+{
+    "name": "angular-datastore",
+    "version": "0.0.1",
+    "authors": [
+        "Riad Benguella"
+    ],
+    "description": "yet another angular data abstraction layer",
+    "license": "MIT",
+    "ignore": [
+        "**/.*"
+    ],
+    "dependencies": {
+        "angular":      "*"
+    }
+}
