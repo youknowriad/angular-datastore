@@ -76,7 +76,7 @@ angular.module('angular-datastore').provider('AngularDataRestAdapter', {
             },
 
             create: function(record) {
-                return $http.post(getUrlForType(record.getType()), AngularDataSerializer.serialize(record));
+                return $http.post(getUrlForType(record.getType()), AngularDataSerializer.serialize(record, false));
             }
         };
 

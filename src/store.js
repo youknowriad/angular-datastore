@@ -10,12 +10,6 @@ angular.module('angular-datastore').provider('AngularDataStore', {
         var records = {};
 
         /**
-         * Array of model configs
-         * @type {{}}
-         */
-        var models = {};
-
-        /**
          * Get loaded record by type and primaryKey
          * @param type
          * @param primaryKey
@@ -41,7 +35,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
             var existingRecord = getRecord(record.getType(), record.getPrimaryKey());
             if (angular.isDefined(existingRecord)) {
                 record = existingRecord;
-                AngularDataSerializer.hydrate(existingRecord, AngularDataSerializer.serialize(record, false));
+                AngularDataSerializer.hydrate(existingRecord, AngularDataSerializer.serialize(record, false), this);
             } else {
                 records[record.getType()].push(record);
             }
@@ -59,7 +53,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
              */
             addModel: function(configuration) {
                 var type  = configuration.name;
-                models[type] = AngularDataModelFactory.get(configuration);
+                AngularDataSerializer.addModel(type, AngularDataModelFactory.get(configuration));
                 records[type]  = [];
             },
 
@@ -71,7 +65,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
             create: function(type, hash) {
                 hash = hash || {};
 
-                return AngularDataSerializer.unserialize(models[type], hash, this);
+                return AngularDataSerializer.unserialize(type, hash, this);
             },
 
             /**
@@ -83,12 +77,12 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                 var self = this;
                 if (record.isNew()) {
                     AngularDataRestAdapter.create(record).success(function(data) {
-                        AngularDataSerializer.hydrate(record, data);
+                        AngularDataSerializer.hydrate(record, data, self);
                         hydrateOrLoad.call(self, record);
                     });
                 } else {
                     AngularDataRestAdapter.update(record).success(function(data) {
-                        AngularDataSerializer.hydrate(record, data);
+                        AngularDataSerializer.hydrate(record, data, self);
                     });
                 }
             },
@@ -132,7 +126,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
 
                 if (!found) {
                     AngularDataRestAdapter.find(type, primaryKey).success(function(hash) {
-                        var record = AngularDataSerializer.unserialize(models[type], hash, self);
+                        var record = AngularDataSerializer.unserialize(type, hash, self);
                         record = hydrateOrLoad.call(self, record);
                         deferred.resolve(record);
                     }).error(function() {
@@ -155,7 +149,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                 AngularDataRestAdapter.findMany(type, primaryKeys).success(function(hashes) {
                     var results = [];
                     angular.forEach(hashes, function(hash) {
-                        var record = AngularDataSerializer.unserialize(models[type], hash, self);
+                        var record = AngularDataSerializer.unserialize(type, hash, self);
                         record = hydrateOrLoad.call(self, record);
                         results.push(record);
                     });
@@ -178,7 +172,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                 var self = this;
                 AngularDataRestAdapter.findAll(type).success(function(hashes) {
                     angular.forEach(hashes, function(hash) {
-                        var record = AngularDataSerializer.unserialize(models[type], hash, self);
+                        var record = AngularDataSerializer.unserialize(type, hash, self);
                         hydrateOrLoad.call(self, record);
                     });
                     deferred.resolve(records[type]);
@@ -201,7 +195,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                 var self = this;
                 AngularDataRestAdapter.findQuery(type, filters).success(function(hashes) {
                     angular.forEach(hashes, function(hash) {
-                        var record = AngularDataSerializer.unserialize(models[type], hash, self);
+                        var record = AngularDataSerializer.unserialize(type, hash, self);
                         hydrateOrLoad.call(self, record);
                     });
                     deferred.resolve(records[type]);
@@ -224,7 +218,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                 var self = this;
                 AngularDataRestAdapter.findQuery(type, filters).then(function(hashes) {
                     if (hashes.length !== 0) {
-                        var record = AngularDataSerializer.unserialize(models[type], hashes[0], self);
+                        var record = AngularDataSerializer.unserialize(type, hashes[0], self);
                         record = hydrateOrLoad.call(self, record);
                         deferred.resolve(record);
                     } else {
