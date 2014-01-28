@@ -25,7 +25,7 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
             angular.forEach(record.getHasManyAttributes(), function(relation, relationName) {
                 switch (relation.type) {
                     case 'id':
-                        if (record.isNew || record.__relations[relationName].loaded) {
+                        if (record.__relations[relationName].loaded) {
                             var serials = [];
                             angular.forEach(record[relationName], function(subrecord) {
                                 serials.push(subrecord.getPrimaryKey());
@@ -50,7 +50,7 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
             angular.forEach(record.getHasOneAttributes(), function(relation, relationName) {
                 switch (relation.type) {
                     case 'id':
-                        if (record.isNew || record.__relations[relationName].loaded) {
+                        if (record.__relations[relationName].loaded) {
                             hash[relationName] = record[relationName] ? record[relationName].getPrimaryKey() : null;
                         } else {
                             hash[relationName] = record.__relations[relationName].unloadedValue;
@@ -67,14 +67,15 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
             return hash;
         },
 
-        unserialize: function(name, hash, store) {
+        unserialize: function(name, hash, store, newRecord) {
             var record = new models[name]();
-            this.hydrate(record, hash, store);
+            record.isNew = newRecord || false;
+            this.hydrate(record, hash, store, newRecord);
 
             return record;
         },
 
-        hydrate: function(record, hash, store) {
+        hydrate: function(record, hash, store, newRecord) {
 
             angular.forEach(record.getAttributes(), function(attribute) {
                 record[attribute] = hash[attribute];
@@ -87,7 +88,7 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
                             newObject = angular.isUndefined(record.__relations[relationName]);
                         if (newObject) {
                             record.__relations[relationName] = {
-                                loaded: false,
+                                loaded: newRecord || false,
                                 value: [],
                                 unloadedValue: hasManyHash,
                                 load: function() {
@@ -128,7 +129,7 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
                     case 'embed':
                         var subrecords = [];
                         angular.forEach(hash[relationName], function(subhash) {
-                            subrecords.push(this.unserialize(relation.target, subhash, store));
+                            subrecords.push(this.unserialize(relation.target, subhash, store, newRecord));
                         }, this);
                         record[relationName] = subrecords;
                         break;
@@ -144,7 +145,7 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
                             newObject = angular.isUndefined(record.__relations[relationName]);
                         if (newObject) {
                             record.__relations[relationName] = {
-                                loaded: false,
+                                loaded: newRecord || false,
                                 value: null,
                                 unloadedValue: hasOneHash,
                                 load: function() {
@@ -181,7 +182,7 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
 
                         break;
                     case 'embed':
-                        record[relationName] = hash[relationName] ? this.unserialize(relation.target, hash[relationName], store) : null;
+                        record[relationName] = hash[relationName] ? this.unserialize(relation.target, hash[relationName], store, newRecord) : null;
                         break;
                     default:
                         throw 'unknown relation type ' + relation.type;

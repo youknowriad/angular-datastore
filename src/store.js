@@ -64,8 +64,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                  */
                 create: function(type, hash) {
                     hash = hash || {};
-                    var record = AngularDataSerializer.unserialize(type, hash, this);
-                    record.isNew = true;
+                    var record = AngularDataSerializer.unserialize(type, hash, this, true);
 
                     return record;
                 },
