@@ -75,18 +75,23 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                  * @param record
                  */
                 save: function(record) {
+                    var deferred = $q.defer();
                     var self = this;
                     if (record.isNew) {
                         AngularDataRestAdapter.create(record).success(function(data) {
                             AngularDataSerializer.hydrate(record, data, self);
                             record.isNew = false;
                             hydrateOrLoad.call(self, record);
+                            deferred.resolve(record);
                         });
                     } else {
                         AngularDataRestAdapter.update(record).success(function(data) {
                             AngularDataSerializer.hydrate(record, data, self);
+                            deferred.resolve(record);
                         });
                     }
+
+                    return deferred.promise;
                 },
 
                 /**
@@ -95,6 +100,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                  * @param record
                  */
                 remove: function(record) {
+                    var deferred = $q.defer();
                     var type = record.getType(),
                         primaryKey = record.getPrimaryKey();
                     AngularDataRestAdapter.remove(record).success(function() {
@@ -103,8 +109,11 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                                 records[type].splice(key, 1);
                             }
                         });
+
+                        deferred.resolve(record);
                     });
 
+                    return deferred.promise;
                 },
 
                 /**
@@ -203,8 +212,8 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                         });
                         deferred.resolve(records[type]);
                     }).error(function() {
-                            deferred.reject();
-                        });
+                        deferred.reject();
+                    });
 
                     return deferred.promise;
                 },
