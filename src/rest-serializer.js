@@ -1,4 +1,4 @@
-angular.module('angular-datastore').service('AngularDataSerializer', function() {
+angular.module('angular-datastore').service('AngularDataSerializer', ['$q', function($q) {
 
     /**
      * Array of model configs
@@ -25,15 +25,7 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
             angular.forEach(record.getHasManyAttributes(), function(relation, relationName) {
                 switch (relation.type) {
                     case 'id':
-                        if (record.__relations[relationName].loaded) {
-                            var serials = [];
-                            angular.forEach(record[relationName], function(subrecord) {
-                                serials.push(subrecord.getPrimaryKey());
-                            }, this);
-                            hash[relationName] = serials;
-                        } else {
-                            hash[relationName] = record.__relations[relationName].unloadedValue;
-                        }
+                        hash[relationName] = record[relationName];
                         break;
                     case 'embed':
                         var ids = [];
@@ -50,11 +42,7 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
             angular.forEach(record.getHasOneAttributes(), function(relation, relationName) {
                 switch (relation.type) {
                     case 'id':
-                        if (record.__relations[relationName].loaded) {
-                            hash[relationName] = record[relationName] ? record[relationName].getPrimaryKey() : null;
-                        } else {
-                            hash[relationName] = record.__relations[relationName].unloadedValue;
-                        }
+                        hash[relationName] = record[relationName];
                         break;
                     case 'embed':
                         hash[relationName] = this.serialize(record[relationName], false);
@@ -84,46 +72,16 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
             angular.forEach(record.getHasManyAttributes(), function(relation, relationName) {
                 switch (relation.type) {
                     case 'id':
-                        var hasManyHash = hash[relationName] || [],
-                            newObject = angular.isUndefined(record.__relations[relationName]);
-                        if (newObject) {
-                            record.__relations[relationName] = {
-                                loaded: newRecord || false,
-                                value: [],
-                                unloadedValue: hasManyHash,
-                                load: function() {
-                                    if (!this.loaded) {
-                                        var self = this;
-                                        this.loaded = true;
-                                        store.findMany(relation.target, this.unloadedValue).then(function(newHasMany) {
-                                            angular.forEach(newHasMany, function(record) {
-                                                self.value.push(record);
-                                            }, self);
-                                        });
-                                    }
-                                }
-                            };
-
-                            Object.defineProperty(record, relationName, {
-                                configurable: true,
-                                get: function() {
-                                    if (!record.__relations[relationName].loaded) {
-                                        record.__relations[relationName].load();
-                                    }
-                                    return record.__relations[relationName].value;
-                                },
-                                set: function(value) {
-                                    record.__relations[relationName].value = value;
-                                }
+                        var hasManyHash = hash[relationName] || [];
+                        record[relationName] = hasManyHash;
+                        record[ 'get' + relationName.charAt(0).toUpperCase() + relationName.slice(1) ] = function() {
+                            var deferred = $q.defer();
+                            store.findMany(relation.target, record[relationName]).then(function(newHasMany) {
+                                deferred.resolve(newHasMany);
                             });
-                        } else if (record.__relations[relationName].loaded && !angular.equals(record.__relations[relationName].unloadedValue, hasManyHash)) {
-                            record.__relations[relationName].loaded   = false;
-                            record.__relations[relationName].unloadedValue = hasManyHash;
-                            record.__relations[relationName].value.splice(0, record.__relations[relationName].value.length);
-                            record.__relations[relationName].load();
-                        } else {
-                            record.__relations[relationName].unloadedValue = hasManyHash;
-                        }
+
+                            return deferred.promise;
+                        };
 
                         break;
                     case 'embed':
@@ -141,44 +99,16 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
             angular.forEach(record.getHasOneAttributes(), function(relation, relationName) {
                 switch (relation.type) {
                     case 'id':
-                        var hasOneHash = hash[relationName] || null,
-                            newObject = angular.isUndefined(record.__relations[relationName]);
-                        if (newObject) {
-                            record.__relations[relationName] = {
-                                loaded: newRecord || false,
-                                value: null,
-                                unloadedValue: hasOneHash,
-                                load: function() {
-                                    if (!this.loaded) {
-                                        var self = this;
-                                        this.loaded = true;
-                                        store.find(relation.target, hasOneHash).then(function(newHasOne) {
-                                            self.value = newHasOne;
-                                        });
-                                    }
-                                }
-                            };
-
-                            Object.defineProperty(record, relationName, {
-                                configurable: true,
-                                get: function() {
-                                    if (!record.__relations[relationName].loaded) {
-                                        record.__relations[relationName].load();
-                                    }
-                                    return record.__relations[relationName].value;
-                                },
-                                set: function(value) {
-                                    record.__relations[relationName].value = value;
-                                }
+                        var hasOneHash = hash[relationName] || null;
+                        record[relationName] = hasOneHash;
+                        record[ 'get' + relationName.charAt(0).toUpperCase() + relationName.slice(1) ] = function() {
+                            var deferred = $q.defer();
+                            store.find(relation.target, record[relationName]).then(function(newHasOne) {
+                                deferred.resolve(newHasOne);
                             });
-                        } else if (record.__relations[relationName].loaded && !angular.equals(record.__relations[relationName].unloadedValue, hasOneHash)) {
-                            record.__relations[relationName].loaded   = false;
-                            record.__relations[relationName].unloadedValue = hasOneHash;
-                            record.__relations[relationName].value = null;
-                            record.__relations[relationName].load();
-                        } else {
-                            record.__relations[relationName].unloadedValue = hasOneHash;
-                        }
+
+                            return deferred.promise;
+                        };
 
                         break;
                     case 'embed':
@@ -192,4 +122,4 @@ angular.module('angular-datastore').service('AngularDataSerializer', function() 
 
     };
 
-});
+}]);
