@@ -1,5 +1,11 @@
 angular.module('angular-datastore').provider('AngularDataStore', {
 
+    configModels: [],
+
+    addModel: function(configuration) {
+        this.configModels.push(configuration);
+    },
+
     $get: ['$q', 'AngularDataModelFactory', 'AngularDataSerializer', 'AngularDataRestAdapter',
         function($q, AngularDataModelFactory, AngularDataSerializer, AngularDataRestAdapter) {
 
@@ -43,19 +49,22 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                 return record;
             };
 
-            return {
+            /**
+             * Add A new model
+             *
+             * @param configuration
+             */
+            var addModel = function(configuration) {
+                var type  = configuration.name;
+                AngularDataSerializer.addModel(type, AngularDataModelFactory.get(configuration));
+                records[type]  = [];
+            };
 
-                /**
-                 * Add A new model
-                 * A model is a function with a config object attached in prototype (static)
-                 *
-                 * @param configuration
-                 */
-                addModel: function(configuration) {
-                    var type  = configuration.name;
-                    AngularDataSerializer.addModel(type, AngularDataModelFactory.get(configuration));
-                    records[type]  = [];
-                },
+            angular.forEach(this.configModels, function(config) {
+                addModel(config);
+            });
+
+            return {
 
                 /**
                  * Create a new instance of a model with hash content
