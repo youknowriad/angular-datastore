@@ -16,8 +16,8 @@ angular.module('angular-datastore').factory('AngularDataModelFactory', function(
                         return configuration.name;
                     },
 
-                    getAttributes: function() {
-                        return configuration.attributes;
+                    getFields: function() {
+                        return configuration.fields;
                     },
 
                     getHasManyAttributes: function() {

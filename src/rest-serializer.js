@@ -1,4 +1,4 @@
-angular.module('angular-datastore').service('AngularDataSerializer', ['$q', function($q) {
+angular.module('angular-datastore').service('AngularDataSerializer', ['$q', 'FieldSerializer', function($q, FieldSerializer) {
 
     /**
      * Array of model configs
@@ -16,9 +16,9 @@ angular.module('angular-datastore').service('AngularDataSerializer', ['$q', func
             var hash = {};
             withPrimaryKey = withPrimaryKey || true;
 
-            angular.forEach(record.getAttributes(), function(attribute) {
-                if (withPrimaryKey || attribute !== record.getPrimaryKeyAttribute()) {
-                    hash[attribute] = record[attribute];
+            angular.forEach(record.getFields(), function(field, fieldName) {
+                if (withPrimaryKey || fieldName !== record.getPrimaryKeyAttribute()) {
+                    hash[fieldName] = FieldSerializer.serialize(field, record[fieldName]);
                 }
             }, this);
 
@@ -65,8 +65,8 @@ angular.module('angular-datastore').service('AngularDataSerializer', ['$q', func
 
         hydrate: function(record, hash, store, newRecord) {
 
-            angular.forEach(record.getAttributes(), function(attribute) {
-                record[attribute] = hash[attribute];
+            angular.forEach(record.getFields(), function(field, fieldName) {
+                record[fieldName] = FieldSerializer.unserialize(field, hash[fieldName]);
             }, this);
 
             angular.forEach(record.getHasManyAttributes(), function(relation, relationName) {
