@@ -32,7 +32,7 @@ angular.module('angular-datastore').provider('AngularDataRestAdapter', {
                     promises = [],
                     results = [];
                 angular.forEach(primaryKeys, function (primaryKey) {
-                    promises.push(this.find(type, primaryKey).success(function (data) {
+                    promises.push(this.find(type, primaryKey).then(function (data) {
                         results.push(data);
                     }));
                 }, this);
