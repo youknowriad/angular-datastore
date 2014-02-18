@@ -6,7 +6,7 @@ angular.module('angular-datastore').service('FieldSerializer', [function() {
             return value;
         },
 
-        unserialize: function(field, serial) {
+        unserialize: function (field, serial) {
             switch (field.type) {
                 case 'date':
                     return serial ? new Date(serial) : null;
