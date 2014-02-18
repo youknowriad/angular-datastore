@@ -32,9 +32,18 @@ angular.module('angular-datastore').provider('AngularDataRestAdapter', {
                     promises = [],
                     results = [];
                 angular.forEach(primaryKeys, function (primaryKey) {
-                    promises.push(this.find(type, primaryKey).then(function (data) {
+                    var relationPromise = $q.defer();
+                    promises.push(relationPromise.promise);
+                    this.find(type, primaryKey).then(function (data) {
                         results.push(data);
-                    }));
+                        relationPromise.resolve();
+                    }, function (data) { 
+                        if (data.code === 404) {
+                            relationPromise.resolve();
+                        } else {
+                            relationPromise.reject();
+                        }
+                    });
                 }, this);
 
                 $q.all(promises).then(function () {
