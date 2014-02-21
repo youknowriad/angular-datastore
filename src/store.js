@@ -1,19 +1,29 @@
 angular.module('angular-datastore').provider('AngularDataStore', {
 
     configModels: [],
+    
+    socketIOUrl: null,
 
     addModel: function (configuration) {
         this.configModels.push(configuration);
     },
+    
+    setSocketIOBaseUrl: function(url) {
+        this.socketIOUrl = url;
+    },
 
-    $get: ['$q', 'AngularDataModelFactory', 'AngularDataSerializer', 'AngularDataRestAdapter',
-        function ($q, AngularDataModelFactory, AngularDataSerializer, AngularDataRestAdapter) {
+    $get: ['$rootScope', '$q', 'AngularDataModelFactory', 'AngularDataSerializer', 'AngularDataRestAdapter',
+        function ($rootScope, $q, AngularDataModelFactory, AngularDataSerializer, AngularDataRestAdapter) {
 
+            
             /**
              * Array of loaded records by type
              * @type {{}}
              */
             var records = {},
+                
+            
+            socket = this.socketIOUrl ? io.connect(this.socketIOUrl) : null,
 
             /**
              * Get loaded record by type and primaryKey
@@ -48,6 +58,35 @@ angular.module('angular-datastore').provider('AngularDataStore', {
 
                 return record;
             },
+            
+            /**
+             * Handle Socket IO Events
+             */
+            handleSocketIO = function (type) {
+                var self = this;
+                socket.on(type + '.update', function(data) {                    console.log('update', data);
+                    $rootScope.$apply(function () {
+                        var record = AngularDataSerializer.unserialize(type, data, self);
+                        hydrateOrLoad.call(self, record);
+                    });
+                });
+                socket.on(type + '.create', function(data) {
+                    $rootScope.$apply(function () {
+                        var record = AngularDataSerializer.unserialize(type, data, self);
+                        hydrateOrLoad.call(self, record);
+                    });
+                });
+                socket.on(type + '.remove', function(data) {
+                    var record = AngularDataSerializer.unserialize(type, data, self);
+                    $rootScope.$apply(function () {
+                        angular.forEach(records[type], function (value, key) {
+                            if (value.getPrimaryKey() === record.getPrimaryKey()) {
+                                records[type].splice(key, 1);
+                            }
+                        });
+                    });
+                });
+            },
 
             /**
              * Add A new model
@@ -58,8 +97,10 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                 var type  = configuration.name;
                 AngularDataSerializer.addModel(type, AngularDataModelFactory.get(configuration));
                 records[type]  = [];
+                if (socket) {
+                    handleSocketIO(type);
+                }
             };
-
             angular.forEach(this.configModels, function (config) {
                 addModel(config);
             });
