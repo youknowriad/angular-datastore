@@ -1,16 +1,16 @@
 {
-    "name": "angular-datastore",
-    "version": "0.0.2",
-    "authors": [
-        "Riad Benguella"
-    ],
-    "description": "yet another angular data abstraction layer",
-    "license": "MIT",
-    "ignore": [
-        "**/.*"
-    ],
-    "dependencies": {
-        "angular": "*",
-        "socket.io-client": "*"
-    }
+  "name": "angular-datastore",
+  "version": "0.0.2",
+  "authors": [
+    "Riad Benguella"
+  ],
+  "description": "yet another angular data abstraction layer",
+  "license": "MIT",
+  "ignore": [
+    "**/.*"
+  ],
+  "dependencies": {
+    "angular": "~1.3.0",
+    "socket.io-client": "~1.1.0"
+  }
 }
