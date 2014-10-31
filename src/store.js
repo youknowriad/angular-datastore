@@ -1,13 +1,13 @@
 angular.module('angular-datastore').provider('AngularDataStore', {
 
     configModels: [],
-    
+
     socketIOUrl: null,
 
     addModel: function (configuration) {
         this.configModels.push(configuration);
     },
-    
+
     setSocketIOBaseUrl: function(url) {
         this.socketIOUrl = url;
     },
@@ -15,13 +15,13 @@ angular.module('angular-datastore').provider('AngularDataStore', {
     $get: ['$rootScope', '$q', 'AngularDataModelFactory', 'AngularDataSerializer', 'AngularDataRestAdapter',
         function ($rootScope, $q, AngularDataModelFactory, AngularDataSerializer, AngularDataRestAdapter) {
 
-            
+
             /**
              * Array of loaded records by type
              * @type {{}}
              */
             var records = {},
-                
+
                 store = {
 
                 /**
@@ -172,11 +172,13 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                     var deferred = $q.defer(),
                         self = this;
                     AngularDataRestAdapter.findQuery(type, filters).then(function (hashes) {
+                            var queryRecords = [];
                             angular.forEach(hashes, function (hash) {
                                 var record = AngularDataSerializer.unserialize(type, hash, self);
-                                hydrateOrLoad(record);
+                                record = hydrateOrLoad(record);
+                                queryRecords.push(record);
                             });
-                            deferred.resolve(records[type]);
+                            deferred.resolve(queryRecords);
                         }, function () {
                             deferred.reject();
                         });
@@ -209,8 +211,8 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                     return deferred.promise;
                 }
             },
-                
-            
+
+
             socket = this.socketIOUrl ? io.connect(this.socketIOUrl) : null,
 
             /**
@@ -246,7 +248,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
 
                 return record;
             },
-            
+
             /**
              * Handle Socket IO Events
              */
@@ -288,7 +290,7 @@ angular.module('angular-datastore').provider('AngularDataStore', {
                     handleSocketIO(type);
                 }
             };
-            
+
             angular.forEach(this.configModels, function (config) {
                 addModel(config);
             });
